@@ -2,19 +2,19 @@
   "suggestedFilename": "MESOCYCLONE_NET2FTP_OPRAVA_V18.zip",
   "files": [
     {
-      "url": "https://raw.githubusercontent.com/mesocycloneCZ/Daisy_map/temp-net2ftp-package-v18/MESOCYCLONE_INSTALACE_V18.php",
+      "url": "https://cdn.jsdelivr.net/gh/mesocycloneCZ/Daisy_map@temp-net2ftp-package-v18/MESOCYCLONE_INSTALACE_V18.php",
       "zipPath": "MESOCYCLONE_INSTALACE_V18.php"
     },
     {
-      "url": "https://raw.githubusercontent.com/mesocycloneCZ/Daisy_map/temp-net2ftp-package-v18/mesocyclone-fix.js",
+      "url": "https://cdn.jsdelivr.net/gh/mesocycloneCZ/Daisy_map@temp-net2ftp-package-v18/mesocyclone-fix.js",
       "zipPath": "mesocyclone-fix.js"
     },
     {
-      "url": "https://raw.githubusercontent.com/mesocycloneCZ/Daisy_map/temp-net2ftp-package-v18/mesocyclone-fix.css",
+      "url": "https://cdn.jsdelivr.net/gh/mesocycloneCZ/Daisy_map@temp-net2ftp-package-v18/mesocyclone-fix.css",
       "zipPath": "mesocyclone-fix.css"
     },
     {
-      "url": "https://raw.githubusercontent.com/mesocycloneCZ/Daisy_map/temp-net2ftp-package-v18/CTETE-NEJDRIVE.txt",
+      "url": "https://cdn.jsdelivr.net/gh/mesocycloneCZ/Daisy_map@temp-net2ftp-package-v18/CTETE-NEJDRIVE.txt",
       "zipPath": "CTETE-NEJDRIVE.txt"
     }
   ]
