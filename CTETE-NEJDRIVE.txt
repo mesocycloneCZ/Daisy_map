@@ -1,0 +1,33 @@
+MESOCYCLONE – OPRAVA KONTAKTU A KARTY O PROJEKTU V18
+=====================================================
+
+Balíček je určen k nahrání přes net2FTP přímo do kořene webu mesocyclone.cz.
+
+POSTUP:
+1. Ve WebFTP otevřete skutečný kořen /mesocyclone.cz.
+2. Musíte zde vidět index.html, site.js, site.css, api.php, admin, data a uploads.
+3. Nahrajte ZIP a rozbalte jej přímo v tomto kořeni.
+4. Otevřete v prohlížeči:
+   https://mesocyclone.cz/MESOCYCLONE_INSTALACE_V18.php
+5. Po potvrzení úspěšné instalace stiskněte na webu Ctrl + F5.
+6. Otestujte položky O projektu a Kontakt.
+7. Soubor MESOCYCLONE_INSTALACE_V18.php ze serveru smažte.
+
+CO SE ZMĚNÍ:
+- Kontakt se zobrazí jako běžná karta hlavní stránky.
+- Odkaz Kontakt povede na /#kontakt.
+- Původní adresa /kontakt/ přesměruje na kartu Kontakt.
+- O projektu bude fungovat na první klik i po načtení dynamických dat.
+- Kontaktní údaje se dál načítají ze stávající konfigurace webu.
+
+CO SE NEMĚNÍ:
+- admin/
+- data/ kromě vytvoření bezpečnostní zálohy
+- uploads/
+- api.php
+- články
+- produkty
+- objednávky
+- heslo administrace
+
+Před úpravou se automaticky vytvoří záloha index.html a původní kontaktní stránky v data/backups/.
