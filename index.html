@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Daisy – bouřky, oblačnost a synoptika</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+html,body,#map{height:100%;margin:0;background:#090909;color:#fff;font-family:system-ui}
+#panel{position:absolute;z-index:999;top:10px;left:10px;right:10px;max-width:600px;background:#111e;padding:12px;border:1px solid #8b0000;border-radius:10px}
+h1{font-size:18px;margin:0 0 8px;color:#ff4b4b}.row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}input[type=range]{flex:1;min-width:160px}
+button{background:#2b2b2b;color:#fff;border:1px solid #555;border-radius:7px;padding:7px 10px;font-weight:700}button.active,#play{background:#8b0000;border-color:#b92222}.time{font-weight:700;color:#ffd1d1}
+small{display:block;margin-top:7px;color:#bbb}.legend{margin-top:8px;font-size:12px}.badge{padding:2px 6px;border-radius:5px;background:#300}.switch{display:flex;align-items:center;gap:5px;font-size:12px}
+</style>
+</head>
+<body>
+<div id="panel">
+<h1>Daisy – předpovědní animace</h1>
+<div class="row" id="modes">
+<button data-mode="storms" class="active">Bouřky</button>
+<button data-mode="cloud">Oblačnost</button>
+<button data-mode="pressure">Tlak</button>
+<button data-mode="fronts">Frontální zóny</button>
+<label class="switch"><input id="satellite" type="checkbox"> EUMETSAT</label>
+</div>
+<div class="row" style="margin-top:8px"><button id="play">▶ Přehrát</button><span>Snímek:</span><input id="hour" type="range" min="0" max="23" value="0"><b id="hourLabel">+0 h</b></div>
+<div class="time" id="validTime">Čas platnosti: —</div>
+<div id="status">Daisy načítá data…</div>
+<small id="description">Bouřkový konsenzus numerických modelů.</small>
+<div class="legend" id="legend"></div>
+</div>
+<div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const map=L.map('map').setView([49.8,15.3],7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+const eumetsat=L.tileLayer.wms('https://view.eumetsat.int/geoserver/wms',{layers:'mtg_fd:rgb_cloudtype',format:'image/png',transparent:true,version:'1.3.0',opacity:.52,attribution:'EUMETSAT EUMETView'});
+let stormData=null,synopticData=null,timer=null,mode='storms',layer=L.layerGroup().addTo(map);
+const hour=document.getElementById('hour'),label=document.getElementById('hourLabel'),status=document.getElementById('status'),validTime=document.getElementById('validTime'),play=document.getElementById('play'),description=document.getElementById('description'),legend=document.getElementById('legend');
+function stormColor(p){if(p<25)return '#ffe45c';if(p<45)return '#ff9f1c';if(p<65)return '#ff4d2e';return '#b30000'}
+function cloudColor(c){const x=Math.max(0,Math.min(100,c));const shade=Math.round(245-x*1.7);return `rgb(${shade},${shade},${Math.min(255,shade+15)})`}
+function pressureColor(p){if(p<995)return '#5d3fd3';if(p<1005)return '#3b82f6';if(p<1015)return '#71c671';if(p<1025)return '#f0b44d';return '#d34b4b'}
+function frontColor(f){if(f<20)return '#5fcf80';if(f<40)return '#f3d64e';if(f<65)return '#ff8c32';return '#e32636'}
+function activeData(){return mode==='storms'?stormData:synopticData}
+function updateTime(){const d=activeData();const h=+hour.value;label.textContent=`+${h} h`;const vt=d?.valid_times?.[h];validTime.textContent='Čas platnosti: '+(vt?new Date(vt).toLocaleString('cs-CZ',{dateStyle:'short',timeStyle:'short'}):`+${h} h`)}
+function renderStorms(h){if(!stormData)return 0;let shown=0;for(const [lat,lon,timeline] of stormData.grid||[]){const r=timeline[h];if(!r)continue;const p=Number(r[1]||0),a=Number(r[2]||0),u=Number(r[4]||0),v=Number(r[5]||0),rr=Number(r[6]||0);const nmodels=r.length>11?Number(r[11]||0):stormData.models?.length||0;if(p<12||a<25)continue;shown++;const half=.175;L.rectangle([[lat-half,lon-half],[lat+half,lon+half]],{stroke:false,fillColor:stormColor(p),fillOpacity:Math.min(.82,.25+p/120)}).bindPopup(`<b>Bouřky</b><br>Pravděpodobnost: ${p}%<br>Shoda: ${a}%<br>Srážky: ${rr} mm/h<br>Modely: ${nmodels}`).addTo(layer);if(shown<=8&&Math.hypot(u,v)>2){const scale=.025;L.polyline([[lat,lon],[lat+v*scale,lon+u*scale/Math.max(.3,Math.cos(lat*Math.PI/180))]],{color:'#fff',weight:2,opacity:.7,dashArray:'5,4'}).addTo(layer)}}return shown}
+function extremaLabels(h){if(!synopticData)return;const pts=(synopticData.grid||[]).map(([lat,lon,t])=>({lat,lon,p:Number(t[h]?.[3])})).filter(x=>Number.isFinite(x.p));pts.sort((a,b)=>a.p-b.p);for(const x of pts.slice(0,2))L.marker([x.lat,x.lon],{icon:L.divIcon({className:'',html:`<div style="font-size:24px;font-weight:900;color:#2f63ff;text-shadow:0 0 3px #fff">L</div>`})}).bindTooltip(`${x.p} hPa`).addTo(layer);for(const x of pts.slice(-2))L.marker([x.lat,x.lon],{icon:L.divIcon({className:'',html:`<div style="font-size:24px;font-weight:900;color:#e53935;text-shadow:0 0 3px #fff">H</div>`})}).bindTooltip(`${x.p} hPa`).addTo(layer)}
+function renderSynoptic(h){if(!synopticData)return 0;let shown=0;const half=(synopticData.grid_step_degrees||1)/2;for(const [lat,lon,timeline] of synopticData.grid||[]){const r=timeline[h];if(!r)continue;const cloud=Number(r[1]),spread=Number(r[2]),pressure=Number(r[3]),t850=Number(r[4]),rh700=Number(r[5]),u=Number(r[6]),v=Number(r[7]),valid=Number(r[8]),front=Number(r[9]);let value,color,opacity=.52,title;if(mode==='cloud'){value=cloud;color=cloudColor(cloud);opacity=.22+cloud/150;title=`Oblačnost ${cloud}%`}else if(mode==='pressure'){value=pressure;color=pressureColor(pressure);opacity=.42;title=`Tlak ${pressure} hPa`}else{value=front;color=frontColor(front);opacity=.18+front/130;title=`Frontální index ${front}`}if(!Number.isFinite(value)||valid<2)continue;shown++;L.rectangle([[lat-half,lon-half],[lat+half,lon+half]],{stroke:false,fillColor:color,fillOpacity:Math.min(.82,opacity)}).bindPopup(`<b>${title}</b><br>Rozptyl oblačnosti: ${spread}%<br>T850: ${t850} °C<br>RH700: ${rh700}%<br>Platné modely: ${valid}`).addTo(layer);if(mode!=='cloud'&&shown<=12&&Number.isFinite(u)&&Number.isFinite(v)&&Math.hypot(u,v)>5){const s=.018;L.polyline([[lat,lon],[lat+v*s,lon+u*s/Math.max(.3,Math.cos(lat*Math.PI/180))]],{color:'#111',weight:1.5,opacity:.65}).addTo(layer)}}if(mode==='pressure')extremaLabels(h);return shown}
+function render(){layer.clearLayers();updateTime();const h=+hour.value;let shown=mode==='storms'?renderStorms(h):renderSynoptic(h);const d=activeData();status.textContent=d?`Daisy • aktualizace: ${new Date(d.generated_at).toLocaleString('cs-CZ')} • zobrazeno: ${shown}`:'Vrstva zatím nemá data';if(mode==='storms'){description.textContent='Bouřkový konsenzus numerických modelů.';legend.innerHTML='<span class="badge">žlutá → červená: rostoucí pravděpodobnost</span>'}else if(mode==='cloud'){description.textContent='Modelová oblačnost; EUMETSAT slouží jako satelitní kontrola.';legend.textContent='světlejší plocha = více oblačnosti'}else if(mode==='pressure'){description.textContent='Tlak redukovaný na hladinu moře a odhad tlakových útvarů.';legend.textContent='modrá = nižší tlak, červená = vyšší tlak'}else{description.textContent='Frontální zóny z prostorových gradientů tlaku, teploty a vlhkosti.';legend.textContent='oranžová až červená = výraznější gradient'}}
+function setMode(next){mode=next;document.querySelectorAll('#modes button').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));const d=activeData();hour.max=Math.max(0,(d?.forecast_hours||24)-1);if(+hour.value>+hour.max)hour.value=0;render()}
+function togglePlay(){if(timer){clearInterval(timer);timer=null;play.textContent='▶ Přehrát';return}play.textContent='⏸ Pauza';timer=setInterval(()=>{hour.value=(+hour.value+1)%(+hour.max+1);render()},1100)}
+document.querySelectorAll('#modes button').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));document.getElementById('satellite').addEventListener('change',e=>{if(e.target.checked)eumetsat.addTo(map);else map.removeLayer(eumetsat)});hour.addEventListener('input',render);play.addEventListener('click',togglePlay);
+Promise.allSettled([fetch('data/consensus.json?ts='+Date.now()).then(r=>r.json()),fetch('data/synoptic.json?ts='+Date.now()).then(r=>{if(!r.ok)throw new Error('synoptic unavailable');return r.json()})]).then(results=>{if(results[0].status==='fulfilled')stormData=results[0].value;if(results[1].status==='fulfilled')synopticData=results[1].value;setMode('storms')});
+</script>
+</body></html>
